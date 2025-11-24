@@ -43,4 +43,4 @@ __screenshots__/
 Thumbs.db
 
 #python
-venv/
+backend/venv/
