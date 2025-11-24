@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": "e85549b9-c88f-492c-a385-98d68a1aaa6b"
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -81,6 +82,9 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json" 
+          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"
