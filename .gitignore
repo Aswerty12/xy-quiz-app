@@ -44,3 +44,7 @@ Thumbs.db
 
 #python
 backend/venv/
+
+#testing data
+backend/static/quizzes
+db.json
