@@ -1,10 +1,12 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick  } from '@angular/core/testing';
 import { QuizUploadComponent } from './quiz-upload.component';
 import { QuizAdminService } from '../../../services/quiz-admin.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
+import { delay } from 'rxjs/operators';
 import { HttpEventType, HttpEvent } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
+
 
 describe('QuizUploadComponent', () => {
   let component: QuizUploadComponent;
@@ -47,7 +49,7 @@ describe('QuizUploadComponent', () => {
     expect(component.fileX).toEqual(goodFile);
   });
 
-  it('should call service and update progress on submit', () => {
+  it('should call service and update progress on submit', fakeAsync(() => {
     // 1. Setup Form Data
     component.uploadForm.setValue({
       name: 'Integration Test',
@@ -57,28 +59,38 @@ describe('QuizUploadComponent', () => {
     component.fileX = new File([''], 'x.zip', { type: 'application/zip' });
     component.fileY = new File([''], 'y.zip', { type: 'application/zip' });
 
-    // 2. Mock Service Response (Progress Stream)
+    // 2. Mock Service Response
+    // We use 'delay(1)' to force the Observable to wait, simulating a real network request
     const progressEvents: HttpEvent<any>[] = [
       { type: HttpEventType.UploadProgress, loaded: 50, total: 100 } as any,
       { type: HttpEventType.Response, body: { success: true } } as any
     ];
-    mockAdminService.uploadQuiz.and.returnValue(of(...progressEvents));
+    
+    // Import 'delay' from rxjs/operators at the top of your file
+    mockAdminService.uploadQuiz.and.returnValue(
+      of(...progressEvents).pipe(delay(1))
+    );
 
     // 3. Trigger Submit
     component.onSubmit();
+    
+    // Force Angular to detect the initial "isUploading = true" state
+    fixture.detectChanges(); 
 
-    // 4. Verification
+    // 4. Verify Loading State (Now this works because the service is 'sleeping' for 1ms)
     expect(mockAdminService.uploadQuiz).toHaveBeenCalled();
     expect(component.isUploading).toBeTrue();
-    
-    // Simulate Observable emission
-    fixture.detectChanges(); 
-    
-    // Progress should have hit 50% then finished
-    // Since stream is synchronous in test, it ends at 100% / success
+    expect(component.uploadProgress).toBe(0);
+
+    // 5. Fast-forward time by 1ms to let the Observable emit
+    tick(1);
+    fixture.detectChanges(); // Update view after observable finishes
+
+    // 6. Verify Final State
+    expect(component.isUploading).toBeFalse(); // Should be false now
     expect(component.successMessage).toContain('success');
-    expect(component.fileX).toBeNull(); // Should reset after success
-  });
+    expect(component.fileX).toBeNull(); 
+  }));
 
   it('should handle upload errors', () => {
     // Setup
