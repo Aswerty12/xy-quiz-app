@@ -58,7 +58,7 @@ import { QuizAdminService } from '../../../services/quiz-admin.service';
             <div 
               appDragDrop 
               (fileDropped)="onFileSelected($event, 'x')"
-              class="h-48 flex flex-col items-center justify-center border-4 border-dashed rounded-lg transition-colors cursor-pointer bg-gray-50"
+              class="relative h-48 flex flex-col items-center justify-center border-4 border-dashed rounded-lg transition-colors cursor-pointer bg-gray-50"
             >
               <div *ngIf="!fileX" class="text-center p-4">
                 <p class="text-gray-500">Drag & Drop ZIP here</p>
@@ -82,7 +82,7 @@ import { QuizAdminService } from '../../../services/quiz-admin.service';
             <div 
               appDragDrop 
               (fileDropped)="onFileSelected($event, 'y')"
-              class="h-48 flex flex-col items-center justify-center border-4 border-dashed rounded-lg transition-colors cursor-pointer bg-gray-50"
+              class="relative h-48 flex flex-col items-center justify-center border-4 border-dashed rounded-lg transition-colors cursor-pointer bg-gray-50"
             >
               <div *ngIf="!fileY" class="text-center p-4">
                 <p class="text-gray-500">Drag & Drop ZIP here</p>
