@@ -1,0 +1,36 @@
+export interface Quiz {
+  id: string;
+  name: string;
+  label_x: string;
+  label_y: string;
+  total_images: number;
+  created_at: string;
+}
+
+export interface RoundResult {
+  imageUrl: string;
+  correctLabel: 'x' | 'y';
+  userGuess: 'x' | 'y';
+  isCorrect: boolean;
+}
+
+// Internal Interface for the queue returned by backend /start endpoint
+export interface GameRoundDefinition {
+  imageUrl: string; // Relative path from backend
+  label: 'x' | 'y';
+}
+
+export interface GameSession {
+  quizId: string;
+  currentRoundIndex: number;
+  totalRounds: number;
+  score: number;
+  history: RoundResult[];
+  activeImageBlobUrl: string | null; // For the DOM
+  currentRoundDefinition: GameRoundDefinition | null;
+  status: 'IDLE' | 'LOADING' | 'PLAYING' | 'ROUND_END' | 'GAME_OVER';
+  config: {
+    useAntiCheat: boolean;
+    bufferTimeMs: number;
+  };
+}
