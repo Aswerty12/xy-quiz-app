@@ -5,7 +5,7 @@ from typing import List
 import uvicorn
 
 # Import internal modules
-from models import QuizMeta, QuizListResponse, GameSession
+from models import QuizMeta, GameRoundDefinition
 import services
 
 app = FastAPI(title="X or Y Quizmaker Backend")
@@ -15,6 +15,7 @@ app = FastAPI(title="X or Y Quizmaker Backend")
 origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
+    "*"
 ]
 
 app.add_middleware(
@@ -68,16 +69,22 @@ def list_quizzes():
     """Returns a list of all available quizzes."""
     return services.get_db()
 
-@app.get("/api/quiz/{quiz_id}/start", response_model=GameSession)
-def start_quiz(quiz_id: str, rounds: int = 10):
+@app.get("/api/quiz/{quiz_id}/start", response_model=List[GameRoundDefinition])
+def start_quiz(quiz_id: str, limit: int = 10):
     """
-    Initializes a game session.
-    Returns a shuffled list of image URLs and their correct answers.
+    Initializes a game session and returns a randomized list of rounds.
+    
+    Args:
+        quiz_id: The quiz ID
+        limit: Number of rounds to return (default: 10)
+    
+    Returns:
+        List of GameRoundDefinition objects with imageUrl and label
     """
-    session = services.generate_game_session(quiz_id, rounds)
-    if not session:
+    rounds = services.generate_game_session(quiz_id, limit)
+    if rounds is None:
         raise HTTPException(status_code=404, detail="Quiz not found")
-    return session
+    return rounds
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

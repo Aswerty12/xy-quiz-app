@@ -131,9 +131,10 @@ def process_upload(name: str, label_x: str, label_y: str, zip_x: bytes, zip_y: b
 
     return new_quiz
 
-def generate_game_session(quiz_id: str, rounds: int) -> Optional[dict]:
+def generate_game_session(quiz_id: str, limit: int) -> Optional[List[dict]]:
     """
-    Generates a randomized list of image URLs for the game.
+    Generates a randomized list of game rounds for the quiz.
+    Returns a list of GameRoundDefinition objects (dicts with imageUrl and label).
     """
     db = get_db()
     quiz = next((q for q in db if q["id"] == quiz_id), None)
@@ -150,29 +151,26 @@ def generate_game_session(quiz_id: str, rounds: int) -> Optional[dict]:
     # Create pool of questions
     pool = []
     for img in images_x:
-        pool.append((img, "x", quiz["label_x"]))
+        pool.append((img, "x"))
     for img in images_y:
-        pool.append((img, "y", quiz["label_y"]))
+        pool.append((img, "y"))
 
     # Shuffle completely
     random.shuffle(pool)
 
     # Slice to requested rounds (or max available)
-    selected_pool = pool[:rounds]
+    selected_pool = pool[:limit]
 
-    questions = []
-    for filename, label_type, label_name in selected_pool:
+    # Transform to GameRoundDefinition format
+    rounds = []
+    for filename, label_type in selected_pool:
         folder = "x_images" if label_type == "x" else "y_images"
-        url = f"/static/quizzes/{quiz_id}/{folder}/{filename}"
+        # Use leading slash in path - matches what frontend expects
+        image_url = f"static/quizzes/{quiz_id}/{folder}/{filename}"
         
-        questions.append({
-            "image_url": url,
-            "correct_label": label_type,
-            "correct_name": label_name
+        rounds.append({
+            "imageUrl": image_url,
+            "label": label_type
         })
 
-    return {
-        "quiz_id": quiz_id,
-        "total_rounds": len(questions),
-        "questions": questions
-    }
+    return rounds
