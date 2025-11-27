@@ -131,7 +131,7 @@ export class GameLogicService {
     const isCorrect = userGuess === state.currentRoundDefinition.label;
 
     const result = {
-      imageUrl: '', 
+      imageUrl: state.activeImageBlobUrl || '', 
       correctLabel: state.currentRoundDefinition.label,
       userGuess: userGuess,
       isCorrect: isCorrect

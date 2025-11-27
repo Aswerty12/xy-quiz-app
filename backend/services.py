@@ -165,7 +165,7 @@ def generate_game_session(quiz_id: str, limit: int) -> Optional[List[dict]]:
     rounds = []
     for filename, label_type in selected_pool:
         folder = "x_images" if label_type == "x" else "y_images"
-        # Use leading slash in path - matches what frontend expects
+        # Path should NOT have a leading slash, as it's combined with a base URL on the frontend.
         image_url = f"static/quizzes/{quiz_id}/{folder}/{filename}"
         
         rounds.append({
