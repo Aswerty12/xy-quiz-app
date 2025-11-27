@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, forkJoin, timer, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { GameSession, Quiz, GameRoundDefinition } from '../models/game.models';
 import { environment } from '../../environments/environment';
 
@@ -11,7 +10,7 @@ import { environment } from '../../environments/environment';
 })
 export class GameLogicService {
   private apiUrl = environment.apiUrl; 
-  private baseUrl = 'http://localhost:8000'; 
+  private baseUrl = environment.baseUrl; 
 
   // --- State Management ---
   private initialState: GameSession = {
@@ -35,7 +34,7 @@ export class GameLogicService {
   private roundQueue: GameRoundDefinition[] = [];
   private objectUrlsToRevoke: string[] = [];
 
-  constructor(private http: HttpClient, private sanitizer: DomSanitizer) {}
+  constructor(private http: HttpClient) {}
 
   fetchQuizzes(): void {
     this.http.get<Quiz[]>(`${this.apiUrl}/quizzes`).subscribe({
@@ -131,7 +130,7 @@ export class GameLogicService {
     const isCorrect = userGuess === state.currentRoundDefinition.label;
 
     const result = {
-      imageUrl: '', 
+      imageUrl: state.activeImageBlobUrl || '', 
       correctLabel: state.currentRoundDefinition.label,
       userGuess: userGuess,
       isCorrect: isCorrect
