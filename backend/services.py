@@ -5,7 +5,7 @@ import uuid
 import random
 import zipfile
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 # Configuration
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -131,7 +131,7 @@ def process_upload(name: str, label_x: str, label_y: str, zip_x: bytes, zip_y: b
 
     return new_quiz
 
-def generate_game_session(quiz_id: str, rounds: int) -> dict:
+def generate_game_session(quiz_id: str, rounds: int) -> Optional[dict]:
     """
     Generates a randomized list of image URLs for the game.
     """
