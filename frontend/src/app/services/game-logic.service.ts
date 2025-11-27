@@ -3,12 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, forkJoin, timer, of } from 'rxjs';
 import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { GameSession, Quiz, GameRoundDefinition } from '../models/game.models';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameLogicService {
-  private apiUrl = 'http://localhost:8000/api';
+  private apiUrl = environment.apiUrl;
 
   // --- State Management ---
   private initialState: GameSession = {
