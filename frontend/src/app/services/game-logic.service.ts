@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, forkJoin, timer, of } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { GameSession, Quiz, GameRoundDefinition } from '../models/game.models';
 import { environment } from '../../environments/environment';
 
@@ -9,7 +10,8 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class GameLogicService {
-  private apiUrl = environment.apiUrl;
+  private apiUrl = environment.apiUrl; 
+  private baseUrl = 'http://localhost:8000'; 
 
   // --- State Management ---
   private initialState: GameSession = {
@@ -30,12 +32,10 @@ export class GameLogicService {
   private quizzesSubject = new BehaviorSubject<Quiz[]>([]);
   public quizzes$ = this.quizzesSubject.asObservable();
 
-  // Queue of rounds to be played
   private roundQueue: GameRoundDefinition[] = [];
+  private objectUrlsToRevoke: string[] = [];
 
-  constructor(private http: HttpClient) {}
-
-  // --- API Methods ---
+  constructor(private http: HttpClient, private sanitizer: DomSanitizer) {}
 
   fetchQuizzes(): void {
     this.http.get<Quiz[]>(`${this.apiUrl}/quizzes`).subscribe({
@@ -44,7 +44,7 @@ export class GameLogicService {
     });
   }
 
-  /**
+    /**
    * Initializes a game.
    * 1. Fetches the randomized list from the backend.
    * 2. Sets up the local queue.
@@ -63,7 +63,6 @@ export class GameLogicService {
             history: [],
             status: 'IDLE'
           });
-          // Immediately trigger first round load
           this.loadNextRound();
         },
         error: (err) => console.error('Failed to start game', err)
@@ -71,7 +70,7 @@ export class GameLogicService {
   }
 
   // --- The Anti-Cheat Logic ---
-
+  
   loadNextRound(): void {
     const currentState = this.sessionSubject.value;
 
@@ -83,41 +82,47 @@ export class GameLogicService {
 
     const nextRoundDef = this.roundQueue[currentState.currentRoundIndex];
     
-    // Set status to LOADING to show spinner
     this.updateState({ 
       status: 'LOADING', 
       currentRoundDefinition: nextRoundDef,
-      activeImageBlobUrl: null // Clear previous image
+      activeImageBlobUrl: null 
     });
 
-    // Construct full URL (Assuming backend serves static files)
-    // Note: Adjust localhost port if different
-    const fullImageUrl = `http://localhost:8000/${nextRoundDef.imageUrl}`;
+    // Fix: Remove leading slash if present to avoid double slashes
+    const imagePath = nextRoundDef.imageUrl.startsWith('/') 
+      ? nextRoundDef.imageUrl.slice(1) 
+      : nextRoundDef.imageUrl;
+    const fullImageUrl = `${this.baseUrl}/${imagePath}`;
 
-    // RxJS Anti-Cheat Flow
     const imageRequest$ = this.http.get(fullImageUrl, { responseType: 'blob' });
-    const bufferTimer$ = timer(currentState.config.bufferTimeMs); // Force min delay
+    const bufferTimer$ = timer(currentState.config.bufferTimeMs);
 
     forkJoin([imageRequest$, bufferTimer$]).pipe(
       map(([blob, _]) => {
-        // Create local object URL for instant rendering
-        return URL.createObjectURL(blob);
+        // Create Object URL from blob
+        const objectUrl = URL.createObjectURL(blob);
+        // Track it for cleanup
+        this.objectUrlsToRevoke.push(objectUrl);
+        // Return the string URL directly (not wrapped in SafeUrl)
+        return objectUrl;
       }),
       catchError(err => {
-        console.error('Image load failed', err);
+        console.error('Image load failed:', err);
         return of(null);
       })
-    ).subscribe((blobUrl) => {
-      if (blobUrl) {
+    ).subscribe((objectUrl) => {
+      if (objectUrl) {
+        // Store the string URL directly - Angular will handle it in the template
         this.updateState({
           status: 'PLAYING',
-          activeImageBlobUrl: blobUrl
+          activeImageBlobUrl: objectUrl as any // Store string URL directly
         });
+      } else {
+        console.warn('Skipping broken round due to load failure.');
+        this.advanceToNext(); 
       }
     });
   }
-
-  // --- Game Logic ---
 
   submitGuess(userGuess: 'x' | 'y'): void {
     const state = this.sessionSubject.value;
@@ -126,7 +131,7 @@ export class GameLogicService {
     const isCorrect = userGuess === state.currentRoundDefinition.label;
 
     const result = {
-      imageUrl: state.activeImageBlobUrl || '',
+      imageUrl: '', 
       correctLabel: state.currentRoundDefinition.label,
       userGuess: userGuess,
       isCorrect: isCorrect
@@ -135,29 +140,33 @@ export class GameLogicService {
     this.updateState({
       score: isCorrect ? state.score + 1 : state.score,
       history: [...state.history, result],
-      status: 'ROUND_END' // Triggers the review modal/overlay
+      status: 'ROUND_END'
     });
   }
 
   advanceToNext(): void {
     const state = this.sessionSubject.value;
-    // Revoke old object URL to prevent memory leaks
-    if (state.activeImageBlobUrl) {
+    
+    // Revoke the previous object URL to free memory
+    if (state.activeImageBlobUrl && typeof state.activeImageBlobUrl === 'string') {
       URL.revokeObjectURL(state.activeImageBlobUrl);
     }
-
+    
     this.updateState({
-      currentRoundIndex: state.currentRoundIndex + 1
+      currentRoundIndex: state.currentRoundIndex + 1,
+      activeImageBlobUrl: null
     });
     
     this.loadNextRound();
   }
 
   resetGame(): void {
+    // Clean up all object URLs
+    this.objectUrlsToRevoke.forEach(url => URL.revokeObjectURL(url));
+    this.objectUrlsToRevoke = [];
     this.updateState(this.initialState);
   }
 
-  // Helper to emit new state non-destructively
   private updateState(changes: Partial<GameSession>): void {
     this.sessionSubject.next({ ...this.sessionSubject.value, ...changes });
   }

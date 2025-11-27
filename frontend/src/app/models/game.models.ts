@@ -1,3 +1,5 @@
+import { SafeUrl } from '@angular/platform-browser'; 
+
 export interface Quiz {
   id: string;
   name: string;
@@ -8,7 +10,7 @@ export interface Quiz {
 }
 
 export interface RoundResult {
-  imageUrl: string;
+  imageUrl: string | SafeUrl;
   correctLabel: 'x' | 'y';
   userGuess: 'x' | 'y';
   isCorrect: boolean;
@@ -26,7 +28,7 @@ export interface GameSession {
   totalRounds: number;
   score: number;
   history: RoundResult[];
-  activeImageBlobUrl: string | null; // For the DOM
+  activeImageBlobUrl: string | SafeUrl |null; // For the DOM
   currentRoundDefinition: GameRoundDefinition | null;
   status: 'IDLE' | 'LOADING' | 'PLAYING' | 'ROUND_END' | 'GAME_OVER';
   config: {
