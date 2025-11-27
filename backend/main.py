@@ -14,8 +14,7 @@ app = FastAPI(title="X or Y Quizmaker Backend")
 # Allow Angular (usually port 4200) to talk to Python (port 8000)
 origins = [
     "http://localhost:4200",
-    "http://127.0.0.1:4200",
-    "*"
+    "http://127.0.0.1:4200"
 ]
 
 app.add_middleware(
