@@ -11,7 +11,7 @@ import { environment } from '../../environments/environment';
 })
 export class GameLogicService {
   private apiUrl = environment.apiUrl; 
-  private baseUrl = 'http://localhost:8000'; 
+  private baseUrl = environment.baseUrl; 
 
   // --- State Management ---
   private initialState: GameSession = {
