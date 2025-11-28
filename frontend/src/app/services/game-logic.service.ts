@@ -33,17 +33,34 @@ export class GameLogicService {
 
   private roundQueue: GameRoundDefinition[] = [];
   private objectUrlsToRevoke: string[] = [];
+  private quizLabelMap: Map<string, { x: string; y: string }> = new Map();
 
   constructor(private http: HttpClient) {}
 
   fetchQuizzes(): void {
     this.http.get<Quiz[]>(`${this.apiUrl}/quizzes`).subscribe({
-      next: (data) => this.quizzesSubject.next(data),
+      next: (data) => {
+        this.quizzesSubject.next(data);
+        // Cache quiz labels for quick lookup
+        data.forEach(quiz => {
+          this.quizLabelMap.set(quiz.id, {
+            x: quiz.label_x,
+            y: quiz.label_y
+          });
+        });
+      },
       error: (err) => console.error('Failed to fetch quizzes', err)
     });
   }
 
-    /**
+  /**
+   * Get cached quiz labels by quiz ID
+   */
+  getQuizLabels(quizId: string): { x: string; y: string } | null {
+    return this.quizLabelMap.get(quizId) || null;
+  }
+
+  /**
    * Initializes a game.
    * 1. Fetches the randomized list from the backend.
    * 2. Sets up the local queue.

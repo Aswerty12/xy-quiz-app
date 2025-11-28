@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { Router } from '@angular/router';
 import { GameLogicService } from '../../services/game-logic.service';
 import { Quiz } from '../../models/game.models';
 
@@ -49,13 +50,13 @@ import { Quiz } from '../../models/game.models';
   `
 })
 export class DashboardComponent implements OnInit {
-  // 1. Declare the property type, but don't assign it yet
   quizzes$: Observable<Quiz[]>; 
-  
   selectedRounds: { [key: string]: number } = {};
 
-  constructor(private gameService: GameLogicService) {
-    // 2. Assign it inside the constructor where 'gameService' is available
+  constructor(
+    private gameService: GameLogicService,
+    private router: Router // Inject Router
+  ) {
     this.quizzes$ = this.gameService.quizzes$;
   }
 
@@ -65,6 +66,11 @@ export class DashboardComponent implements OnInit {
 
   onStartQuiz(quiz: Quiz): void {
     const rounds = this.selectedRounds[quiz.id] || 10;
+    
+    // 1. Initialize Game State
     this.gameService.startGame(quiz.id, rounds);
+    
+    // 2. Navigate to Game Container
+    this.router.navigate(['/play']);
   }
 }
