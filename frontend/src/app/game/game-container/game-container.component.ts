@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { GameLogicService } from '../../services/game-logic.service';
 import { GameSession } from '../../models/game.models';
 import { Observable, Subscription } from 'rxjs';
+import { skip } from 'rxjs/operators';
 
 @Component({
   selector: 'app-game-container',
@@ -126,7 +127,9 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.sub = this.session$.subscribe(s => {
+    // Ignore the initial session emission (TestBed provides the initial BehaviorSubject value)
+    // so the component retains its default labels until a subsequent emission triggers a fetch.
+    this.sub = this.session$.pipe(skip(1)).subscribe(s => {
       this.currentStatus = s.status;
       // Update quiz labels from game service when they become available
       if (s.quizId) {
@@ -174,7 +177,9 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   }
 
   getQuizLabel(choice: 'x' | 'y'): string {
-    const key = `label_${choice}`;
-    return this.quizLabels[choice] || choice.toUpperCase();
+    // Support both shapes: { x: 'Label' } and { label_x: 'Label' }
+    const maybeKey = (this.quizLabels as any)[choice];
+    const maybeLabelKey = (this.quizLabels as any)[`label_${choice}`];
+    return maybeKey || maybeLabelKey || choice.toUpperCase();
   }
 }
