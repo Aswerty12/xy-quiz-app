@@ -1,6 +1,5 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
 import { GameLogicService } from '../../services/game-logic.service';
 import { GameSession } from '../../models/game.models';
 import { Observable, Subscription } from 'rxjs';
@@ -34,26 +33,61 @@ import { Observable, Subscription } from 'rxjs';
              class="w-full h-full object-contain"
              alt="Guess now">
 
-        <!-- Round End / Review Overlay -->
-        <div *ngIf="session.status === 'ROUND_END'" 
-             class="absolute inset-0 bg-black/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center">
-          
-          <div class="text-6xl mb-4">
-            {{ getLastResult(session).isCorrect ? '✅' : '❌' }}
+        <!-- Choice Buttons Overlay (Playing State) -->
+        <div *ngIf="session.status === 'PLAYING'" 
+             class="absolute inset-0 flex items-end justify-center z-10 pb-8">
+          <div class="flex gap-6">
+            <button (click)="submitGuess('x')" 
+                    class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors shadow-lg">
+              {{ getQuizLabel('x') }} (←)
+            </button>
+            <button (click)="submitGuess('y')" 
+                    class="px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors shadow-lg">
+              {{ getQuizLabel('y') }} (→)
+            </button>
           </div>
-          
-          <h2 class="text-3xl text-white font-bold mb-2">
-            {{ getLastResult(session).isCorrect ? 'Correct!' : 'Wrong!' }}
-          </h2>
-          
-          <p class="text-gray-300 mb-8">
-            It was <span class="font-bold text-white">{{ getLastResult(session).correctLabel | uppercase }}</span>
-          </p>
+        </div>
 
-          <button (click)="nextRound()" 
-                  class="bg-white text-gray-900 px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors auto-focus">
-            Next Round (Space)
-          </button>
+        <!-- Round End / Review Modal -->
+        <div *ngIf="session.status === 'ROUND_END'" 
+             class="absolute inset-0 bg-black/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-6">
+          
+          <div class="bg-gray-800 rounded-xl p-8 max-w-2xl w-full">
+            <div class="flex flex-col md:flex-row gap-6">
+              <!-- Image Review Section -->
+              <div class="flex-1 flex flex-col items-center">
+                <h3 class="text-lg text-gray-300 mb-3 font-semibold">Review Image</h3>
+                <img [src]="getLastResult(session).imageUrl" 
+                     class="w-full rounded-lg object-contain max-h-64 border-2 border-gray-700"
+                     alt="Review">
+              </div>
+              
+              <!-- Result Section -->
+              <div class="flex-1 flex flex-col justify-center text-center">
+                <div class="text-5xl mb-4">
+                  {{ getLastResult(session).isCorrect ? '✅' : '❌' }}
+                </div>
+                
+                <h2 class="text-2xl text-white font-bold mb-4">
+                  {{ getLastResult(session).isCorrect ? 'Correct!' : 'Wrong!' }}
+                </h2>
+                
+                <div class="space-y-3 mb-6">
+                  <p class="text-gray-300">
+                    Your guess: <span class="font-bold text-white">{{ getQuizLabel(getLastResult(session).userGuess) }}</span>
+                  </p>
+                  <p class="text-gray-300">
+                    Correct answer: <span class="font-bold text-white">{{ getQuizLabel(getLastResult(session).correctLabel) }}</span>
+                  </p>
+                </div>
+
+                <button (click)="nextRound()" 
+                        class="w-full bg-white text-gray-900 px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors">
+                  Next Round (Space)
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Game Over Overlay -->
@@ -85,24 +119,24 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   session$: Observable<GameSession>;
   private sub: Subscription | null = null;
   private currentStatus: string = 'IDLE';
+  quizLabels: { x: string; y: string } = { x: 'X', y: 'Y' };
 
-  constructor(
-    private gameService: GameLogicService,
-    private router: Router
-  ) {
+  constructor(private gameService: GameLogicService) {
     this.session$ = this.gameService.session$;
   }
 
   ngOnInit() {
     this.sub = this.session$.subscribe(s => {
       this.currentStatus = s.status;
-      // Optional: Safety check - if user refreshes on /play, session might be empty
-      if (!s.quizId && s.status === 'IDLE') {
-         this.router.navigate(['/select']);
+      // Update quiz labels from game service when they become available
+      if (s.quizId) {
+        const labels = this.gameService.getQuizLabels(s.quizId);
+        if (labels) {
+          this.quizLabels = labels;
+        }
       }
     });
   }
-
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
@@ -111,8 +145,8 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     if (this.currentStatus === 'PLAYING') {
-      if (event.key === 'ArrowLeft') this.gameService.submitGuess('x');
-      if (event.key === 'ArrowRight') this.gameService.submitGuess('y');
+      if (event.key === 'ArrowLeft') this.submitGuess('x');
+      if (event.key === 'ArrowRight') this.submitGuess('y');
     } else if (this.currentStatus === 'ROUND_END') {
       if (event.code === 'Space' || event.key === 'Enter') this.nextRound();
     }
@@ -122,16 +156,25 @@ export class GameContainerComponent implements OnInit, OnDestroy {
     return Math.min(session.currentRoundIndex + 1, session.totalRounds);
   }
 
+  submitGuess(guess: 'x' | 'y') {
+    this.gameService.submitGuess(guess);
+  }
+
   nextRound() {
     this.gameService.advanceToNext();
   }
 
   quitGame() {
-    this.gameService.resetGame(); // Ensure clean state
-    this.router.navigate(['/select']); // Navigate back to selection
+    // Navigate back to dashboard logic here
+    window.location.reload(); // Simple reset for now
   }
 
   getLastResult(session: GameSession) {
     return session.history[session.history.length - 1];
+  }
+
+  getQuizLabel(choice: 'x' | 'y'): string {
+    const key = `label_${choice}`;
+    return this.quizLabels[choice] || choice.toUpperCase();
   }
 }
