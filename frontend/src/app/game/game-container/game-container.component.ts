@@ -1,5 +1,6 @@
 import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { GameLogicService } from '../../services/game-logic.service';
 import { GameSession } from '../../models/game.models';
 import { Observable, Subscription } from 'rxjs';
@@ -85,13 +86,23 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   private sub: Subscription | null = null;
   private currentStatus: string = 'IDLE';
 
-  constructor(private gameService: GameLogicService) {
+  constructor(
+    private gameService: GameLogicService,
+    private router: Router
+  ) {
     this.session$ = this.gameService.session$;
   }
 
   ngOnInit() {
-    this.sub = this.session$.subscribe(s => this.currentStatus = s.status);
+    this.sub = this.session$.subscribe(s => {
+      this.currentStatus = s.status;
+      // Optional: Safety check - if user refreshes on /play, session might be empty
+      if (!s.quizId && s.status === 'IDLE') {
+         this.router.navigate(['/select']);
+      }
+    });
   }
+
 
   ngOnDestroy() {
     this.sub?.unsubscribe();
@@ -116,8 +127,8 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   }
 
   quitGame() {
-    // Navigate back to dashboard logic here
-    window.location.reload(); // Simple reset for now
+    this.gameService.resetGame(); // Ensure clean state
+    this.router.navigate(['/select']); // Navigate back to selection
   }
 
   getLastResult(session: GameSession) {
