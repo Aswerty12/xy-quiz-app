@@ -231,7 +231,7 @@ describe('GameContainerComponent', () => {
     sessionSubject.next({ 
       ...initialSession, 
       status: 'ROUND_END',
-      history: [{ imageUrl: '', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
+      history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
     });
     fixture.detectChanges();
 
@@ -258,13 +258,11 @@ describe('GameContainerComponent', () => {
   });
 
   it('should unsubscribe on ngOnDestroy', () => {
-      if (component['sub'] && typeof component['sub'].unsubscribe === 'function') {
-          spyOn(component['sub'], 'unsubscribe');
-      }
-      component.ngOnInit();
-      component.ngOnDestroy();
-
-      // Component should not throw errors when destroyed
-      expect(component).toBeTruthy();
+    component.ngOnInit();
+    const sub = component['sub'];
+    expect(sub).withContext('Subscription should be created in ngOnInit').not.toBeNull();
+    spyOn(sub!, 'unsubscribe');
+    component.ngOnDestroy();
+    expect(sub!.unsubscribe).toHaveBeenCalled();
   });
 });
