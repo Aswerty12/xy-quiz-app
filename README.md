@@ -13,16 +13,21 @@ Steps for installing python venv for running the app:
     Windows: venv\Scripts\activate
     Mac/Linux: source venv/bin/activate
 4. Install FastAPI: pip install fastapi uvicorn python-multipart
-Command to turn on api: (While in backend folder) > uvicorn main:app --reload
+5. Command to turn on api: (While in backend folder) > uvicorn main:app --reload // just to test, the python script is how you'll be doing it afterwards
+6. Ctrl+ C to quit out of the API for now
 
 Steps for deploying afterwards
 1. cd backend
 2. Activate env:
     Windows: venv\Scripts\activate
     Mac/Linux: source venv/bin/activate
+3. python main.py
 
-Steps for deploying
-1. ng serve
+Steps for deploying frontend
+1. cd frontend
+2. npm install
+3. MAKE SURE THE BACKEND IS LIVE FIRST
+4. ng serve
 
 # Reference Dev notes
 This will be the location for locally testing the API when main.py is run http://localhost:8000/docs
