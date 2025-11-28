@@ -13,7 +13,7 @@ import { Observable, Subscription } from 'rxjs';
       
       <!-- Top HUD -->
       <div class="w-full max-w-4xl flex justify-between items-center text-white mb-4 px-4">
-        <div class="text-xl font-mono">Round: {{ session.currentRoundIndex + 1 }} / {{ session.totalRounds }}</div>
+        <div class="text-xl font-mono">Round: {{ getDisplayRound(session) }} / {{ session.totalRounds }}</div>
         <div class="text-3xl font-bold text-indigo-400">{{ session.score }} pts</div>
       </div>
 
@@ -105,6 +105,10 @@ export class GameContainerComponent implements OnInit, OnDestroy {
     } else if (this.currentStatus === 'ROUND_END') {
       if (event.code === 'Space' || event.key === 'Enter') this.nextRound();
     }
+  }
+
+  getDisplayRound(session: GameSession): number {
+    return Math.min(session.currentRoundIndex + 1, session.totalRounds);
   }
 
   nextRound() {
