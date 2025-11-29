@@ -6,7 +6,6 @@ import { Router } from '@angular/router';
 import { GameLogicService } from '../../services/game-logic.service';
 import { Quiz } from '../../models/game.models';
 
-
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -29,11 +28,14 @@ import { Quiz } from '../../models/game.models';
           <!-- Round Selector -->
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Rounds: {{ selectedRounds[quiz.id] || 10 }}
+              Rounds: {{ getRoundsForQuiz(quiz) }}
             </label>
-            <input type="range" min="1" [max]="quiz.total_images" 
-                   [(ngModel)]="selectedRounds[quiz.id]" 
-                   class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            <input 
+              type="range" 
+              min="1" 
+              [max]="quiz.total_images"
+              [(ngModel)]="selectedRounds[quiz.id]"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
           </div>
 
           <button (click)="onStartQuiz(quiz)"
@@ -50,12 +52,12 @@ import { Quiz } from '../../models/game.models';
   `
 })
 export class DashboardComponent implements OnInit {
-  quizzes$: Observable<Quiz[]>; 
+  quizzes$: Observable<Quiz[]>;
   selectedRounds: { [key: string]: number } = {};
 
   constructor(
     private gameService: GameLogicService,
-    private router: Router // Inject Router
+    private router: Router
   ) {
     this.quizzes$ = this.gameService.quizzes$;
   }
@@ -64,13 +66,17 @@ export class DashboardComponent implements OnInit {
     this.gameService.fetchQuizzes();
   }
 
+  // This ensures the number is ALWAYS shown, even before user interaction
+  getRoundsForQuiz(quiz: Quiz): number {
+    if (!this.selectedRounds[quiz.id]) {
+      this.selectedRounds[quiz.id] = Math.max(1, Math.floor(quiz.total_images / 2));
+    }
+    return this.selectedRounds[quiz.id];
+  }
+
   onStartQuiz(quiz: Quiz): void {
-    const rounds = this.selectedRounds[quiz.id] || 10;
-    
-    // 1. Initialize Game State
+    const rounds = this.getRoundsForQuiz(quiz); // Reuses same logic
     this.gameService.startGame(quiz.id, rounds);
-    
-    // 2. Navigate to Game Container
     this.router.navigate(['/play']);
   }
 }
