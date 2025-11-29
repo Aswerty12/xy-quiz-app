@@ -85,6 +85,6 @@ export class DashboardComponent implements OnInit {
   onStartQuiz(quiz: Quiz): void {
     const rounds = this.getRoundsForQuiz(quiz); // Reuses same logic
     this.gameService.startGame(quiz.id, rounds);
-    this.router.navigate(['/play']);
+    this.router.navigate(['/play']).catch(err => console.error('Failed to navigate into game', err));
   }
 }

@@ -4,6 +4,7 @@ import { GameLogicService } from '../../services/game-logic.service';
 import { GameSession } from '../../models/game.models';
 import { Observable, Subscription } from 'rxjs';
 import { skip } from 'rxjs/operators';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-game-container',
@@ -122,7 +123,10 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   private currentStatus: string = 'IDLE';
   quizLabels: { x: string; y: string } = { x: 'X', y: 'Y' };
 
-  constructor(private gameService: GameLogicService) {
+  constructor(
+    private gameService: GameLogicService,
+    private router: Router 
+  ) {
     this.session$ = this.gameService.session$;
   }
 
@@ -168,9 +172,12 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   }
 
   quitGame() {
-    // Navigate back to dashboard logic here
-    window.location.reload(); // Simple reset for now
-  }
+  // 1. Clean up the service state (revoke blobs, reset score/round)
+  this.gameService.resetGame();
+  
+  // 2. Navigate back to the dashboard 
+  this.router.navigate(['/select']).catch(err => console.error('Failed to navigate away from game:', err)); 
+}
 
   getLastResult(session: GameSession) {
     return session.history[session.history.length - 1];
