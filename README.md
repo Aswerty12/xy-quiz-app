@@ -1,9 +1,11 @@
 # Introduction
 
-This is a local full stack project made to improve my portfolio inspired by seeing the quiz interface from https://realorai.dev/. The frontend is generated via Angular, while the backend uses python to manage the uploading and unzipping of 
-files; with data storage handled locally via json and the file system of the computer this app will run on.
+This project is a local full-stack application built to strengthen my portfolio, inspired by the quiz interface at realorai.dev.
+The frontend is developed with Angular, while the backend is powered by Python, which manages file uploads, extraction, and local data storage through JSON files and the host machine’s file system.
 
-The intent is to create a simple game/quiz system for future use where the user image is shown and the user has to determine if it's one label or another. Say, determine if it's a real or ai image, or determine if a particular image is of a ripe or unripe banana. With the intent of creating an automatic, local testing platform for any students to either use this for their own research directly or for them to fork this project to specialize for their own research.
+The goal of this app is to provide a simple, extensible quiz/game platform in which users are shown an image and must classify it between two labels—for example, real vs. AI-generated, or ripe vs. unripe banana.
+
+This platform is designed to be used for local testing, prototyping, or academic research. Students or researchers can use it directly for their experiments or fork and adapt it for more specialized use cases.
 
 # Housekeeping
 Steps for installing python venv for running the app:
@@ -17,20 +19,20 @@ Steps for installing python venv for running the app:
 6. Ctrl+ C to quit out of the API for now
 
 ## Steps for deploying afterwards
-1. cd backend
+1. `cd backend`
 2. Activate env:
-    Windows: venv\Scripts\activate
-    Mac/Linux: source venv/bin/activate
-3. python main.py
+    Windows: `venv\Scripts\activate`
+    Mac/Linux: `source venv/bin/activate`
+3. `python main.py` will activate the backend API
 
 ## Steps for deploying frontend
-1. cd frontend
-2. npm install
+1. `cd frontend` from root folder
+2. `npm install` to install the relevant npm packages
 3. **Important:** Make sure the backend is live first.
-4. ng serve
+4. `ng serve` to deploy frontend
 
 ## Running tests
-1. ng test --watch=false (*--watch=false is optional mostly meant to double check that nothing on the frontend has been broken.*)
+1. Run `ng test` --watch=false (*--watch=false is optional mostly meant to double check that nothing on the frontend has been broken.*)
 2. Run `ng serve` and then perform a point-to-point test (upload -> play -> delete).
 
 # Reference Dev notes
