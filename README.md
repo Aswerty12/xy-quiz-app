@@ -30,8 +30,8 @@ Steps for installing python venv for running the app:
 4. ng serve
 
 ## Running tests
-1. ng test --watch=false // *--watch=false is optional mostly meant to double check that nothing on the frontend has been broken.*
-2. ng serve *Do a point to point test from uploading a file to playing to deleting*
+1. ng test --watch=false (*--watch=false is optional mostly meant to double check that nothing on the frontend has been broken.*)
+2. Run `ng serve` and then perform a point-to-point test (upload -> play -> delete).
 
 # Reference Dev notes
 This will be the location for locally testing the API when main.py is run http://localhost:8000/docs
