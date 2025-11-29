@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { GameLogicService } from '../../services/game-logic.service';
 import { Quiz } from '../../models/game.models';
@@ -59,7 +60,15 @@ export class DashboardComponent implements OnInit {
     private gameService: GameLogicService,
     private router: Router
   ) {
-    this.quizzes$ = this.gameService.quizzes$;
+    this.quizzes$ = this.gameService.quizzes$.pipe(
+      tap(quizzes => {
+        quizzes.forEach(quiz => {
+          if (!this.selectedRounds[quiz.id]) {
+            this.selectedRounds[quiz.id] = Math.max(1, Math.floor(quiz.total_images / 2));
+          }
+        });
+      })
+    );
   }
 
   ngOnInit(): void {
@@ -68,10 +77,9 @@ export class DashboardComponent implements OnInit {
 
   // This ensures the number is ALWAYS shown, even before user interaction
   getRoundsForQuiz(quiz: Quiz): number {
-    if (!this.selectedRounds[quiz.id]) {
-      this.selectedRounds[quiz.id] = Math.max(1, Math.floor(quiz.total_images / 2));
-    }
-    return this.selectedRounds[quiz.id];
+    // The selectedRounds for this quiz should now be initialized when quizzes$ emits.
+    // This method now acts as a pure getter.
+    return this.selectedRounds[quiz.id] || 1;
   }
 
   onStartQuiz(quiz: Quiz): void {
