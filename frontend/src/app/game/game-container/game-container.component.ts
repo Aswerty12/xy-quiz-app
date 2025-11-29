@@ -126,7 +126,7 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   constructor(
     private gameService: GameLogicService,
     private router: Router 
-    ) {
+  ) {
     this.session$ = this.gameService.session$;
   }
 
@@ -176,7 +176,7 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   this.gameService.resetGame();
   
   // 2. Navigate back to the dashboard 
-  this.router.navigate(['/select']); 
+  this.router.navigate(['/select']).catch(err => console.error('Failed to navigate away from game:', err)); 
 }
 
   getLastResult(session: GameSession) {
