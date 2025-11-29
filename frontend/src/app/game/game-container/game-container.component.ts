@@ -103,17 +103,7 @@ import { Router } from '@angular/router';
         </div>
       </div>
 
-      <!-- Controls Hint -->
-      <div class="mt-8 flex gap-8 text-gray-400" *ngIf="session.status === 'PLAYING'">
-        <div class="flex flex-col items-center">
-          <kbd class="px-4 py-2 bg-gray-800 rounded-lg border-b-4 border-gray-700 text-xl font-bold">←</kbd>
-          <span class="text-sm mt-2">Guess X</span>
-        </div>
-        <div class="flex flex-col items-center">
-          <kbd class="px-4 py-2 bg-gray-800 rounded-lg border-b-4 border-gray-700 text-xl font-bold">→</kbd>
-          <span class="text-sm mt-2">Guess Y</span>
-        </div>
-      </div>
+      
     </div>
   `
 })
