@@ -19,7 +19,7 @@ Contributors are welcome to make their own fork.
 6. Go to the play page to check.
 
 # Housekeeping
-Steps for installing python venv for running the app:
+## Steps for installing python venv for running the app:
 1. cd backend
 2. Create virtual env: python -m venv venv
 3. Activate env:
