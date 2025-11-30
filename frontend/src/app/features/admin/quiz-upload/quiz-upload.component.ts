@@ -138,9 +138,10 @@ import { QuizAdminService } from '../../../services/quiz-admin.service';
           </div>
           <button 
             (click)="onDeleteQuiz(quiz.id)"
-            class="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded text-sm font-medium transition-colors"
+            [disabled]="deletingQuizId === quiz.id"
+            class="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 disabled:bg-gray-100 disabled:text-gray-400 rounded text-sm font-medium transition-colors"
           >
-            Delete
+            {{ deletingQuizId === quiz.id ? 'Deleting...' : 'Delete' }}
           </button>
         </div>
       </div>
@@ -161,6 +162,9 @@ export class QuizUploadComponent implements OnInit {
   // New properties for list management
   quizzes: Quiz[] = [];
   isLoadingList = false;
+
+  //For deleting quizzes
+  deletingQuizId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -201,20 +205,37 @@ export class QuizUploadComponent implements OnInit {
   }
 
   onDeleteQuiz(id: string) {
-    if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
-      return;
-    }
-
-    this.adminService.deleteQuiz(id).subscribe({
-      next: () => {
-        // Remove from local array immediately for UI responsiveness
-        this.quizzes = this.quizzes.filter(q => q.id !== id);
-      },
-      error: (err) => {
-        alert('Failed to delete quiz: ' + err.message);
-      }
-    });
+  if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+    return;
   }
+
+  // Optional: Clear previous messages
+  this.successMessage = '';
+  this.errorMessage = '';
+  this.deletingQuizId = id; // Start loading state
+  this.cd.detectChanges();  // Update UI immediately
+
+  this.adminService.deleteQuiz(id).subscribe({
+    next: () => {
+      // 1. Remove the item from the local array
+      this.quizzes = this.quizzes.filter(q => q.id !== id);
+      
+      // 2. Set a success message so the user knows it worked
+      this.successMessage = 'Quiz deleted successfully.';
+      this.deletingQuizId = null; // Clear loading state
+
+      // 3. CRITICAL: Force Angular to refresh the UI immediately
+      this.cd.detectChanges();
+    },
+    error: (err) => {
+      console.error(err);
+      this.errorMessage = 'Failed to delete quiz: ' + (err.error?.detail || err.message);
+      this.deletingQuizId = null; 
+      // Force refresh to show the error message
+      this.cd.detectChanges(); 
+    }
+  });
+}
 
   onFileSelected(file: File, side: 'x' | 'y') {
     if (file.type !== 'application/zip' && file.type !== 'application/x-zip-compressed') {
