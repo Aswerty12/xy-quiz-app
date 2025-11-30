@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpEvent, HttpRequest } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { UploadResponse } from '../models/quiz.model';
+import { UploadResponse , Quiz} from '../models/quiz.model';
 import { environment } from '../../environments/environment';
 
 @Injectable({
@@ -9,7 +9,7 @@ import { environment } from '../../environments/environment';
 })
 export class QuizAdminService {
   
-  private readonly API_URL = environment.apiUrl;
+  private readonly API_URL = environment.apiUrl|| 'http://localhost:8000/api';
 
   constructor(private http: HttpClient) {}
 
@@ -39,5 +39,12 @@ export class QuizAdminService {
     });
 
     return this.http.request(req);
+  }
+  getQuizzes(): Observable<Quiz[]> {
+    return this.http.get<Quiz[]>(`${this.API_URL}/quizzes`);
+  }
+
+  deleteQuiz(quizId: string): Observable<any> {
+    return this.http.delete(`${this.API_URL}/quiz/${quizId}`);
   }
 }

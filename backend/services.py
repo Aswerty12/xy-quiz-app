@@ -174,3 +174,30 @@ def generate_game_session(quiz_id: str, limit: int) -> Optional[List[dict]]:
         })
 
     return rounds
+
+def delete_quiz(quiz_id: str) -> bool:
+    """
+    Deletes a quiz from the database and removes its files.
+    Returns True if deleted, False if not found.
+    """
+    db = get_db()
+    quiz = next((q for q in db if q["id"] == quiz_id), None)
+    
+    if not quiz:
+        return False
+    
+    # 1. Remove directory from filesystem first
+    quiz_path = os.path.join(QUIZZES_DIR, quiz_id)
+    if os.path.exists(quiz_path):
+        try:
+            shutil.rmtree(quiz_path)
+        except OSError as e:
+            # If file deletion fails, log the error and abort.
+            print(f"Error deleting folder {quiz_path}: {e}")
+            return False
+            
+    # 2. If file deletion was successful, remove from DB list
+    new_db = [q for q in db if q["id"] != quiz_id]
+    save_db(new_db)
+            
+    return True
