@@ -85,5 +85,13 @@ def start_quiz(quiz_id: str, limit: int = 10):
         raise HTTPException(status_code=404, detail="Quiz not found")
     return rounds
 
+@app.delete("/api/quiz/{quiz_id}")
+def delete_quiz(quiz_id: str):
+    """Deletes a quiz and its associated files."""
+    success = services.delete_quiz(quiz_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return {"status": "success", "message": f"Quiz {quiz_id} deleted"}
+
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
