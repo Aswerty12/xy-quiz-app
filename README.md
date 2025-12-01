@@ -18,7 +18,12 @@ Contributors are welcome to make their own fork.
 5. Upload the two sets
 6. Go to the play page to check.
 
-# Housekeeping
+## How to Delete a quiz
+1. Go to the upload/admin page. Below the upload form you will see a list of the current quizzes
+2. Select the quiz to be deleted, then confirm
+3. The Quiz will be deleted then removed from the list. 
+
+# Running the App
 ## Steps for installing python venv for running the app:
 1. cd backend
 2. Create virtual env: python -m venv venv
@@ -29,7 +34,7 @@ Contributors are welcome to make their own fork.
 5. Command to turn on api: (While in backend folder) > uvicorn main:app --reload *(Note: this is for testing; for regular use, run 'python main.py' as described below)*
 6. Ctrl+ C to quit out of the API for now
 
-## Steps for deploying afterwards
+### Steps for deploying afterwards
 1. `cd backend`
 2. Activate env:
     Windows: `venv\Scripts\activate`
@@ -42,7 +47,7 @@ Contributors are welcome to make their own fork.
 3. **Important:** Make sure the backend is live first.
 4. `ng serve` to deploy frontend
 
-### Front after first time
+### Frontend deployment after first time
 4. Run via `ng serve`
 
 ## Running tests
