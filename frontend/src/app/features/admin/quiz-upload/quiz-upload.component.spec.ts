@@ -64,6 +64,7 @@ describe('QuizUploadComponent', () => {
 
     component.onFileSelected(badFile, 'x');
     expect(component.errorMessage).toContain('valid ZIP');
+    expect(component.fileX).toBeNull();
 
     component.onFileSelected(goodFile, 'x');
     expect(component.errorMessage).toBe('');
