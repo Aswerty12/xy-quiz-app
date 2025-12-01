@@ -48,7 +48,7 @@ Contributors are welcome to make their own fork.
 4. `ng serve` to deploy frontend
 
 ### Frontend deployment after first time
-4. Run via `ng serve`
+1. Run via `ng serve`
 
 ## Running tests
 1. Run `ng test` --watch=false (*--watch=false is optional mostly meant to double check that nothing on the frontend has been broken.*)
