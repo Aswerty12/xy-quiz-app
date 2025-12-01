@@ -37,8 +37,8 @@ describe('QuizUploadComponent', () => {
     fixture = TestBed.createComponent(QuizUploadComponent);
     component = fixture.componentInstance;
     
-    // Trigger ngOnInit to load initial quizzes
-    component.ngOnInit();
+    // Trigger ngOnInit and initial data binding
+    fixture.detectChanges();
   });
 
   // --- EXISTING TESTS (Refined) ---
