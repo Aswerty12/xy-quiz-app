@@ -183,21 +183,22 @@ export class QuizUploadComponent implements OnInit {
   }
 
   loadQuizzes() {
-  this.isLoadingList = true;
-  this.adminService.getQuizzes()
-    .subscribe({
-      next: (data) => {
-        this.quizzes = Array.isArray(data) ? data : [];
-        this.isLoadingList = false;
-        console.log('Quizzes loaded:', this.quizzes);
-      },
-      error: (err) => {
-        console.error('Failed to load quizzes', err);
-        this.errorMessage = 'Could not load quiz list.';
-        this.isLoadingList = false;
-      }
-    });
-}
+    this.isLoadingList = true;
+    this.adminService.getQuizzes()
+      .pipe(
+        finalize(() => this.isLoadingList = false)
+      )
+      .subscribe({
+        next: (data) => {
+          this.quizzes = Array.isArray(data) ? data : [];
+          console.log('Quizzes loaded:', this.quizzes);
+        },
+        error: (err) => {
+          console.error('Failed to load quizzes', err);
+          this.errorMessage = 'Could not load quiz list.';
+        }
+      });
+  }
 
   onDeleteQuiz(id: string) {
   if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
