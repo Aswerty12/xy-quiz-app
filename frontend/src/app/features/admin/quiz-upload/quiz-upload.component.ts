@@ -183,56 +183,41 @@ export class QuizUploadComponent implements OnInit {
   }
 
   loadQuizzes() {
-    this.isLoadingList = true;
-    this.adminService.getQuizzes()
-      .pipe(
-        finalize(() => {
-          this.isLoadingList = false;
-          this.cd.detectChanges(); // 3. Manually trigger UI update
-        })
-      )
-      .subscribe({
-        next: (data) => {
-          // 4. Safety check: Ensure data is an array, otherwise default to empty []
-          this.quizzes = Array.isArray(data) ? data : [];
-          console.log('Quizzes loaded:', this.quizzes);
-        },
-        error: (err) => {
-          console.error('Failed to load quizzes', err);
-          this.errorMessage = 'Could not load quiz list.';
-        }
-      });
-  }
+  this.isLoadingList = true;
+  this.adminService.getQuizzes()
+    .subscribe({
+      next: (data) => {
+        this.quizzes = Array.isArray(data) ? data : [];
+        this.isLoadingList = false;
+        console.log('Quizzes loaded:', this.quizzes);
+      },
+      error: (err) => {
+        console.error('Failed to load quizzes', err);
+        this.errorMessage = 'Could not load quiz list.';
+        this.isLoadingList = false;
+      }
+    });
+}
 
   onDeleteQuiz(id: string) {
   if (!confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
     return;
   }
 
-  // Optional: Clear previous messages
   this.successMessage = '';
   this.errorMessage = '';
-  this.deletingQuizId = id; // Start loading state
-  this.cd.detectChanges();  // Update UI immediately
+  this.deletingQuizId = id;
 
   this.adminService.deleteQuiz(id).subscribe({
     next: () => {
-      // 1. Remove the item from the local array
       this.quizzes = this.quizzes.filter(q => q.id !== id);
-      
-      // 2. Set a success message so the user knows it worked
       this.successMessage = 'Quiz deleted successfully.';
-      this.deletingQuizId = null; // Clear loading state
-
-      // 3. CRITICAL: Force Angular to refresh the UI immediately
-      this.cd.detectChanges();
+      this.deletingQuizId = null;
     },
     error: (err) => {
       console.error(err);
       this.errorMessage = 'Failed to delete quiz: ' + (err.error?.detail || err.message);
-      this.deletingQuizId = null; 
-      // Force refresh to show the error message
-      this.cd.detectChanges(); 
+      this.deletingQuizId = null;
     }
   });
 }
