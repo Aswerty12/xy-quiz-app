@@ -1,12 +1,17 @@
-import { ComponentFixture, TestBed, fakeAsync, tick  } from '@angular/core/testing';
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { QuizUploadComponent } from './quiz-upload.component';
 import { QuizAdminService } from '../../../services/quiz-admin.service';
 import { ReactiveFormsModule } from '@angular/forms';
 import { of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { HttpEventType, HttpEvent } from '@angular/common/http';
-import { By } from '@angular/platform-browser';
+import { ChangeDetectorRef } from '@angular/core';
 
+// Mock data to be used across tests
+const MOCK_QUIZZES = [
+  { id: '1', name: 'Quiz A', label_x: 'X', label_y: 'Y', total_images: 10, created_at: '2023-01-01' },
+  { id: '2', name: 'Quiz B', label_x: 'A', label_y: 'B', total_images: 20, created_at: '2023-01-02' }
+];
 
 describe('QuizUploadComponent', () => {
   let component: QuizUploadComponent;
@@ -14,91 +19,96 @@ describe('QuizUploadComponent', () => {
   let mockAdminService: jasmine.SpyObj<QuizAdminService>;
 
   beforeEach(async () => {
-    // Create a mock service
-    mockAdminService = jasmine.createSpyObj('QuizAdminService', ['uploadQuiz']);
+    // 1. Create spy object with ALL used methods, including the new ones
+    mockAdminService = jasmine.createSpyObj('QuizAdminService', [
+      'uploadQuiz', 
+      'getQuizzes', 
+      'deleteQuiz'
+    ]);
+
+    // 2. IMPORTANT: Setup default return for getQuizzes because ngOnInit calls it immediately.
+    // If we don't do this, ngOnInit might fail or return undefined.
+    mockAdminService.getQuizzes.and.returnValue(of(MOCK_QUIZZES));
 
     await TestBed.configureTestingModule({
       imports: [QuizUploadComponent, ReactiveFormsModule],
       providers: [
-        { provide: QuizAdminService, useValue: mockAdminService }
+        { provide: QuizAdminService, useValue: mockAdminService },
+        // ChangeDetectorRef is provided automatically by ComponentFixture, 
+        // but explicit providing is harmless if needed for specific mocking.
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(QuizUploadComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
+    
+    // 3. Trigger ngOnInit (which calls loadQuizzes)
+    fixture.detectChanges(); 
   });
 
-  it('should initialize with invalid form', () => {
+  // --- EXISTING TESTS (Refined) ---
+
+  it('should initialize and load quizzes', () => {
     expect(component.uploadForm.valid).toBeFalse();
     expect(component.fileX).toBeNull();
+    
+    // Check if quizzes were loaded on init
+    expect(mockAdminService.getQuizzes).toHaveBeenCalled();
+    expect(component.quizzes.length).toBe(2);
+    expect(component.quizzes[0].name).toBe('Quiz A');
   });
 
   it('should validate file types on selection', () => {
     const badFile = new File([''], 'test.txt', { type: 'text/plain' });
     const goodFile = new File([''], 'test.zip', { type: 'application/zip' });
 
-    // Test Bad File
     component.onFileSelected(badFile, 'x');
     expect(component.errorMessage).toContain('valid ZIP');
-    expect(component.fileX).toBeNull();
 
-    // Test Good File
     component.onFileSelected(goodFile, 'x');
     expect(component.errorMessage).toBe('');
     expect(component.fileX).toEqual(goodFile);
   });
 
-  it('should call service and update progress on submit', fakeAsync(() => {
-    // 1. Setup Form Data
-    component.uploadForm.setValue({
-      name: 'Integration Test',
-      labelX: 'Cats',
-      labelY: 'Dogs'
-    });
+  it('should call service, update progress, and reload list on submit', fakeAsync(() => {
+    // Setup valid form
+    component.uploadForm.setValue({ name: 'Integration Test', labelX: 'Cats', labelY: 'Dogs' });
     component.fileX = new File([''], 'x.zip', { type: 'application/zip' });
     component.fileY = new File([''], 'y.zip', { type: 'application/zip' });
 
-    // 2. Mock Service Response
-    // We use 'delay(1)' to force the Observable to wait, simulating a real network request
+    // Mock Upload with Delay
     const progressEvents: HttpEvent<any>[] = [
       { type: HttpEventType.UploadProgress, loaded: 50, total: 100 } as any,
       { type: HttpEventType.Response, body: { success: true } } as any
     ];
-    
-    // Import 'delay' from rxjs/operators at the top of your file
-    mockAdminService.uploadQuiz.and.returnValue(
-      of(...progressEvents).pipe(delay(1))
-    );
+    mockAdminService.uploadQuiz.and.returnValue(of(...progressEvents).pipe(delay(1)));
 
-    // 3. Trigger Submit
+    // Reset calls to getQuizzes to ensure we check if it's called AGAIN after upload
+    mockAdminService.getQuizzes.calls.reset();
+    mockAdminService.getQuizzes.and.returnValue(of([...MOCK_QUIZZES, { id: '3', name: 'New Quiz', label_x:'C', label_y:'D', total_images:5, created_at:'' }]));
+
     component.onSubmit();
-    
-    // Force Angular to detect the initial "isUploading = true" state
-    fixture.detectChanges(); 
+    fixture.detectChanges(); // Update UI for isUploading=true
 
-    // 4. Verify Loading State (Now this works because the service is 'sleeping' for 1ms)
-    expect(mockAdminService.uploadQuiz).toHaveBeenCalled();
     expect(component.isUploading).toBeTrue();
     expect(component.uploadProgress).toBe(0);
 
-    // 5. Fast-forward time by 1ms to let the Observable emit
-    tick(1);
-    fixture.detectChanges(); // Update view after observable finishes
+    tick(1); // Finish upload
+    fixture.detectChanges(); 
 
-    // 6. Verify Final State
-    expect(component.isUploading).toBeFalse(); // Should be false now
+    expect(component.isUploading).toBeFalse();
     expect(component.successMessage).toContain('success');
-    expect(component.fileX).toBeNull(); 
+    expect(component.fileX).toBeNull();
+    
+    // VERIFY: Does it refresh the quiz list after upload?
+    expect(mockAdminService.getQuizzes).toHaveBeenCalled();
   }));
 
   it('should handle upload errors', () => {
-    // Setup
     component.uploadForm.patchValue({ name: 'Error Test', labelX: 'A', labelY: 'B' });
-    component.fileX = new File([''], 'a.zip');
-    component.fileY = new File([''], 'b.zip');
+    component.fileX = new File([''], 'a.zip', { type: 'application/zip' });
+    component.fileY = new File([''], 'b.zip', { type: 'application/zip' });
 
-    // Mock Error
     mockAdminService.uploadQuiz.and.returnValue(throwError(() => ({ 
       error: { detail: 'Corrupt Zip' } 
     })));
@@ -108,5 +118,69 @@ describe('QuizUploadComponent', () => {
 
     expect(component.errorMessage).toContain('Corrupt Zip');
     expect(component.isUploading).toBeFalse();
+  });
+
+  // --- NEW TESTS FOR DELETE FUNCTIONALITY ---
+
+  it('should NOT delete if user cancels confirmation', () => {
+    // Mock window.confirm to return false
+    spyOn(window, 'confirm').and.returnValue(false);
+    
+    component.onDeleteQuiz('1');
+
+    expect(mockAdminService.deleteQuiz).not.toHaveBeenCalled();
+    // List should remain unchanged
+    expect(component.quizzes.length).toBe(2);
+  });
+
+  it('should delete quiz and update list on confirmation', () => {
+    // 1. Mock window.confirm to return true
+    spyOn(window, 'confirm').and.returnValue(true);
+    
+    // 2. Mock delete success
+    mockAdminService.deleteQuiz.and.returnValue(of({ status: 'success' }));
+
+    // 3. Perform delete on ID '1' (Quiz A)
+    component.onDeleteQuiz('1');
+    fixture.detectChanges();
+
+    // 4. Verify Service Call
+    expect(mockAdminService.deleteQuiz).toHaveBeenCalledWith('1');
+
+    // 5. Verify Local Update (Quiz A should be gone, Quiz B remains)
+    expect(component.quizzes.length).toBe(1);
+    expect(component.quizzes[0].id).toBe('2');
+    
+    // 6. Verify Success Message
+    expect(component.successMessage).toContain('deleted successfully');
+  });
+
+  it('should handle delete errors gracefully', () => {
+    spyOn(window, 'confirm').and.returnValue(true);
+    
+    // Mock Error
+    mockAdminService.deleteQuiz.and.returnValue(throwError(() => ({ 
+      message: 'Server error' 
+    })));
+
+    component.onDeleteQuiz('1');
+    fixture.detectChanges();
+
+    // Verify Error Message
+    expect(component.errorMessage).toContain('Failed to delete');
+    
+    // Verify List was NOT updated (optimistic updates might differ, 
+    // but based on your code, filter happens in next(), so list should stay same on error)
+    expect(component.quizzes.length).toBe(2);
+  });
+
+  it('should handle empty list from API', () => {
+    // Simulate empty list response
+    mockAdminService.getQuizzes.and.returnValue(of([]));
+    
+    component.loadQuizzes();
+    
+    expect(component.quizzes).toEqual([]);
+    expect(component.isLoadingList).toBeFalse();
   });
 });
