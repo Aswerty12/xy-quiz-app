@@ -38,6 +38,24 @@ import { Quiz } from '../../models/game.models';
               [(ngModel)]="selectedRounds[quiz.id]"
               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
           </div>
+          
+          <!-- Timer Selector -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Timer (Seconds): {{ getTimerForQuiz(quiz) > 0 ? getTimerForQuiz(quiz) + 's' : 'Disabled' }}
+            </label>
+            <input 
+              type="range" 
+              min="0" 
+              max="60"
+              step="5"
+              [(ngModel)]="selectedTimer[quiz.id]"
+              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>Off</span>
+              <span>60s</span>
+            </div>
+          </div>
 
           <button (click)="onStartQuiz(quiz)"
                   class="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
@@ -55,6 +73,7 @@ import { Quiz } from '../../models/game.models';
 export class DashboardComponent implements OnInit {
   quizzes$: Observable<Quiz[]>;
   selectedRounds: { [key: string]: number } = {};
+  selectedTimer: { [key: string]: number } = {};
 
   constructor(
     private gameService: GameLogicService,
@@ -65,6 +84,9 @@ export class DashboardComponent implements OnInit {
         quizzes.forEach(quiz => {
           if (!this.selectedRounds[quiz.id]) {
             this.selectedRounds[quiz.id] = Math.max(1, Math.floor(quiz.total_images / 2));
+          }
+          if (this.selectedTimer[quiz.id] === undefined) {
+            this.selectedTimer[quiz.id] = 0; // Default to disabled
           }
         });
       })
@@ -82,9 +104,14 @@ export class DashboardComponent implements OnInit {
     return this.selectedRounds[quiz.id] || 1;
   }
 
+  getTimerForQuiz(quiz: Quiz): number {
+    return this.selectedTimer[quiz.id] ?? 0;
+  }
+
   onStartQuiz(quiz: Quiz): void {
     const rounds = this.getRoundsForQuiz(quiz); // Reuses same logic
-    this.gameService.startGame(quiz.id, rounds);
+    const timer = this.getTimerForQuiz(quiz);
+    this.gameService.startGame(quiz.id, rounds, timer);
     this.router.navigate(['/play']).catch(err => console.error('Failed to navigate into game', err));
   }
 }

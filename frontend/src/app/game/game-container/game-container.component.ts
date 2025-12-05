@@ -2,8 +2,8 @@ import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameLogicService } from '../../services/game-logic.service';
 import { GameSession } from '../../models/game.models';
-import { Observable, Subscription } from 'rxjs';
-import { skip } from 'rxjs/operators';
+import { Observable, Subscription, timer, of } from 'rxjs';
+import { skip, switchMap, map, takeWhile } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 @Component({
@@ -16,7 +16,12 @@ import { Router } from '@angular/router';
       <!-- Top HUD -->
       <div class="w-full max-w-4xl flex justify-between items-center text-white mb-4 px-4">
         <div class="text-xl font-mono">Round: {{ getDisplayRound(session) }} / {{ session.totalRounds }}</div>
-        <div class="text-3xl font-bold text-indigo-400">{{ session.score }} pts</div>
+        <div class="flex items-center gap-4">
+          <div *ngIf="timerDisplay$ | async as timeLeft" class="text-2xl font-bold text-yellow-400 font-mono">
+            {{ timeLeft }}s
+          </div>
+          <div class="text-3xl font-bold text-indigo-400">{{ session.score }} pts</div>
+        </div>
       </div>
 
       <!-- Main Game Area -->
@@ -71,7 +76,7 @@ import { Router } from '@angular/router';
                 </div>
                 
                 <h2 class="text-2xl text-white font-bold mb-4">
-                  {{ getLastResult(session).isCorrect ? 'Correct!' : 'Wrong!' }}
+                  {{ getLastResult(session).isCorrect ? 'Correct!' : (getLastResult(session).userGuess === 'TIMEOUT' ? "Time's Up!" : 'Wrong!') }}
                 </h2>
                 
                 <div class="space-y-3 mb-6">
@@ -109,15 +114,29 @@ import { Router } from '@angular/router';
 })
 export class GameContainerComponent implements OnInit, OnDestroy {
   session$: Observable<GameSession>;
+  timerDisplay$: Observable<number | null>;
   private sub: Subscription | null = null;
   private currentStatus: string = 'IDLE';
   quizLabels: { x: string; y: string } = { x: 'X', y: 'Y' };
 
   constructor(
     private gameService: GameLogicService,
-    private router: Router 
+    private router: Router
   ) {
     this.session$ = this.gameService.session$;
+
+    this.timerDisplay$ = this.session$.pipe(
+      switchMap(session => {
+        if (session.status === 'PLAYING' && session.config.timerDuration > 0) {
+          return timer(0, 1000).pipe(
+            map(tick => session.config.timerDuration - tick),
+            takeWhile(val => val >= 0)
+          );
+        } else {
+          return of(null);
+        }
+      })
+    );
   }
 
   ngOnInit() {
@@ -162,18 +181,19 @@ export class GameContainerComponent implements OnInit, OnDestroy {
   }
 
   quitGame() {
-  // 1. Clean up the service state (revoke blobs, reset score/round)
-  this.gameService.resetGame();
-  
-  // 2. Navigate back to the dashboard 
-  this.router.navigate(['/select']).catch(err => console.error('Failed to navigate away from game:', err)); 
-}
+    // 1. Clean up the service state (revoke blobs, reset score/round)
+    this.gameService.resetGame();
+
+    // 2. Navigate back to the dashboard 
+    this.router.navigate(['/select']).catch(err => console.error('Failed to navigate away from game:', err));
+  }
 
   getLastResult(session: GameSession) {
     return session.history[session.history.length - 1];
   }
 
-  getQuizLabel(choice: 'x' | 'y'): string {
+  getQuizLabel(choice: 'x' | 'y' | 'TIMEOUT'): string {
+    if (choice === 'TIMEOUT') return 'TIMEOUT';
     // Support both shapes: { x: 'Label' } and { label_x: 'Label' }
     const maybeKey = (this.quizLabels as any)[choice];
     const maybeLabelKey = (this.quizLabels as any)[`label_${choice}`];

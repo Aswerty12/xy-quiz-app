@@ -8,7 +8,7 @@ describe('GameLogicService', () => {
   let httpMock: HttpTestingController;
 
   const mockQuiz: Quiz = {
-    id: 'test-quiz', name: 'Test Quiz', label_x: 'Real', label_y: 'AI', 
+    id: 'test-quiz', name: 'Test Quiz', label_x: 'Real', label_y: 'AI',
     total_images: 10, created_at: '2023-01-01'
   };
 
@@ -55,7 +55,7 @@ describe('GameLogicService', () => {
   });
 
   describe('Game Flow & Anti-Cheat', () => {
-    
+
     // Helper to start a game for subsequent tests
     const startGameHelper = () => {
       service.startGame('test-quiz', 5);
@@ -65,10 +65,10 @@ describe('GameLogicService', () => {
 
     it('should initialize game state on startGame', () => {
       startGameHelper();
-      
+
       // Note: startGame triggers loadNextRound immediately, so we expect an image request
       const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
-      imgReq.flush(new Blob()); 
+      imgReq.flush(new Blob());
 
       service.session$.subscribe(state => {
         expect(state.quizId).toBe('test-quiz');
@@ -76,11 +76,46 @@ describe('GameLogicService', () => {
       });
     });
 
+    it('should initialize game state with timer duration', () => {
+      service.startGame('test-quiz', 5, 30);
+      const req = httpMock.expectOne('http://localhost:8000/api/quiz/test-quiz/start?limit=5');
+      req.flush(mockRoundQueue);
+
+      const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
+      imgReq.flush(new Blob());
+
+      service.session$.subscribe(state => {
+        expect(state.config.timerDuration).toBe(30);
+      });
+    });
+
+    it('should auto-submit TIMEOUT when timer expires', fakeAsync(() => {
+      // Start game with 2 second timer
+      service.startGame('test-quiz', 5, 2);
+      const req = httpMock.expectOne('http://localhost:8000/api/quiz/test-quiz/start?limit=5');
+      req.flush(mockRoundQueue);
+
+      const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
+      imgReq.flush(new Blob());
+
+      // Wait for buffer time (1s) to start playing
+      tick(1000);
+      expect(service['sessionSubject'].value.status).toBe('PLAYING');
+
+      // Wait for timer duration (2s)
+      tick(2000);
+
+      const state = service['sessionSubject'].value;
+      expect(state.status).toBe('ROUND_END');
+      expect(state.history[0].userGuess).toBe('TIMEOUT');
+      expect(state.history[0].isCorrect).toBeFalse();
+    }));
+
     it('should wait for buffer time (Anti-Cheat) before showing image', fakeAsync(() => {
       startGameHelper();
-      
+
       const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
-      
+
       // 1. Flush the image immediately (simulate fast network)
       imgReq.flush(new Blob());
 
@@ -132,14 +167,31 @@ describe('GameLogicService', () => {
       expect(state.history[0].isCorrect).toBeFalse();
     }));
 
+    it('should handle TIMEOUT guess correctly', fakeAsync(() => {
+      // Setup Game and load round 1 (Label is 'x')
+      startGameHelper();
+      const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
+      imgReq.flush(new Blob());
+      tick(1000);
+
+      // Act
+      service.submitGuess('TIMEOUT');
+
+      // Assert
+      const state = service['sessionSubject'].value;
+      expect(state.score).toBe(0);
+      expect(state.history[0].isCorrect).toBeFalse();
+      expect(state.history[0].userGuess).toBe('TIMEOUT');
+    }));
+
     it('should advance to next round', fakeAsync(() => {
       // Setup
       startGameHelper();
       httpMock.expectOne('http://localhost:8000/img1.jpg').flush(new Blob());
       tick(1000);
-      
+
       service.submitGuess('x'); // Round 1 done
-      
+
       // Act
       service.advanceToNext();
 
@@ -152,7 +204,7 @@ describe('GameLogicService', () => {
       const imgReq2 = httpMock.expectOne('http://localhost:8000/img2.jpg');
       imgReq2.flush(new Blob());
       tick(1000);
-      
+
       expect(service['sessionSubject'].value.status).toBe('PLAYING');
     }));
 
@@ -163,7 +215,7 @@ describe('GameLogicService', () => {
       tick(1000); // Playing Round 1
       service.submitGuess('x');
       service.advanceToNext();
-      
+
       httpMock.expectOne('http://localhost:8000/img2.jpg').flush(new Blob());
       tick(1000); // Playing Round 2
       service.submitGuess('y');

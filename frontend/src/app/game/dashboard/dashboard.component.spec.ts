@@ -50,13 +50,13 @@ describe('DashboardComponent', () => {
   it('should call startGame with correct parameters when button clicked', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const startButtons = compiled.querySelectorAll('button');
-    
+
     // Simulate user selecting 15 rounds for Quiz A (id: '1')
     component.selectedRounds['1'] = 15;
-    
+
     // Click first button
     startButtons[0].click();
 
-    expect(mockGameService.startGame).toHaveBeenCalledWith('1', 15);
+    expect(mockGameService.startGame).toHaveBeenCalledWith('1', 15, 0);
   });
 });
