@@ -4,7 +4,7 @@ import { GameLogicService } from '../../services/game-logic.service';
 import { BehaviorSubject } from 'rxjs';
 import { GameSession } from '../../models/game.models';
 
-describe('GameContainerComponent', () => {
+fdescribe('GameContainerComponent', () => {
   let component: GameContainerComponent;
   let fixture: ComponentFixture<GameContainerComponent>;
   let mockGameService: jasmine.SpyObj<GameLogicService>;
@@ -102,6 +102,20 @@ describe('GameContainerComponent', () => {
     const img = compiled.querySelector('img');
     expect(img).toBeTruthy();
     expect(img?.src).toContain('blob:test');
+  });
+
+  it('should display timer when timerDuration > 0', () => {
+    sessionSubject.next({
+      ...initialSession,
+      status: 'PLAYING',
+      config: { ...initialSession.config, timerDuration: 30 }
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const timerElement = compiled.querySelector('.text-yellow-400');
+    expect(timerElement).toBeTruthy();
+    expect(timerElement?.textContent).toContain('30s');
   });
 
   it('should display choice buttons with quiz labels when status is PLAYING', () => {

@@ -76,6 +76,41 @@ describe('GameLogicService', () => {
       });
     });
 
+    it('should initialize game state with timer duration', () => {
+      service.startGame('test-quiz', 5, 30);
+      const req = httpMock.expectOne('http://localhost:8000/api/quiz/test-quiz/start?limit=5');
+      req.flush(mockRoundQueue);
+
+      const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
+      imgReq.flush(new Blob());
+
+      service.session$.subscribe(state => {
+        expect(state.config.timerDuration).toBe(30);
+      });
+    });
+
+    it('should auto-submit TIMEOUT when timer expires', fakeAsync(() => {
+      // Start game with 2 second timer
+      service.startGame('test-quiz', 5, 2);
+      const req = httpMock.expectOne('http://localhost:8000/api/quiz/test-quiz/start?limit=5');
+      req.flush(mockRoundQueue);
+
+      const imgReq = httpMock.expectOne('http://localhost:8000/img1.jpg');
+      imgReq.flush(new Blob());
+
+      // Wait for buffer time (1s) to start playing
+      tick(1000);
+      expect(service['sessionSubject'].value.status).toBe('PLAYING');
+
+      // Wait for timer duration (2s)
+      tick(2000);
+
+      const state = service['sessionSubject'].value;
+      expect(state.status).toBe('ROUND_END');
+      expect(state.history[0].userGuess).toBe('TIMEOUT');
+      expect(state.history[0].isCorrect).toBeFalse();
+    }));
+
     it('should wait for buffer time (Anti-Cheat) before showing image', fakeAsync(() => {
       startGameHelper();
 
