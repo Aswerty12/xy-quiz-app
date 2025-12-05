@@ -156,13 +156,13 @@ export class GameLogicService {
 
     if (state.status !== 'PLAYING' || !state.currentRoundDefinition) return;
 
-    const isCorrect = userGuess === state.currentRoundDefinition.label;
+    const isCorrect = userGuess !== 'TIMEOUT' && userGuess === state.currentRoundDefinition.label;
 
     const result = {
       imageUrl: state.activeImageBlobUrl || '',
       correctLabel: state.currentRoundDefinition.label,
       userGuess: userGuess,
-      isCorrect: userGuess === 'TIMEOUT' ? false : isCorrect
+      isCorrect
     };
 
     this.updateState({
