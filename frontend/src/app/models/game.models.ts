@@ -34,5 +34,6 @@ export interface GameSession {
   config: {
     useAntiCheat: boolean;
     bufferTimeMs: number;
+    timerDuration: number; // 0 or null means disabled
   };
 }

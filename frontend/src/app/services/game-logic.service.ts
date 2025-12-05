@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, forkJoin, timer, of } from 'rxjs';
+import { BehaviorSubject, Observable, forkJoin, timer, of, Subscription } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 import { GameSession, Quiz, GameRoundDefinition } from '../models/game.models';
 import { environment } from '../../environments/environment';
@@ -9,8 +9,8 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class GameLogicService {
-  private apiUrl = environment.apiUrl; 
-  private baseUrl = environment.baseUrl; 
+  private apiUrl = environment.apiUrl;
+  private baseUrl = environment.baseUrl;
 
   // --- State Management ---
   private initialState: GameSession = {
@@ -22,7 +22,7 @@ export class GameLogicService {
     activeImageBlobUrl: null,
     currentRoundDefinition: null,
     status: 'IDLE',
-    config: { useAntiCheat: true, bufferTimeMs: 1000 }
+    config: { useAntiCheat: true, bufferTimeMs: 1000, timerDuration: 0 }
   };
 
   private sessionSubject = new BehaviorSubject<GameSession>(this.initialState);
@@ -33,9 +33,10 @@ export class GameLogicService {
 
   private roundQueue: GameRoundDefinition[] = [];
   private objectUrlsToRevoke: string[] = [];
+  private roundTimerSub: Subscription | null = null;
   private quizLabelMap: Map<string, { x: string; y: string }> = new Map();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   fetchQuizzes(): void {
     this.http.get<Quiz[]>(`${this.apiUrl}/quizzes`).subscribe({
@@ -66,7 +67,7 @@ export class GameLogicService {
    * 2. Sets up the local queue.
    * 3. Starts the first round.
    */
-  startGame(quizId: string, totalRoundsWanted: number): void {
+  startGame(quizId: string, totalRoundsWanted: number, timerDuration: number = 0): void {
     this.http.get<GameRoundDefinition[]>(`${this.apiUrl}/quiz/${quizId}/start?limit=${totalRoundsWanted}`)
       .subscribe({
         next: (queue) => {
@@ -77,7 +78,8 @@ export class GameLogicService {
             currentRoundIndex: 0,
             score: 0,
             history: [],
-            status: 'IDLE'
+            status: 'IDLE',
+            config: { ...this.initialState.config, timerDuration }
           });
           this.loadNextRound();
         },
@@ -86,7 +88,7 @@ export class GameLogicService {
   }
 
   // --- The Anti-Cheat Logic ---
-  
+
   loadNextRound(): void {
     const currentState = this.sessionSubject.value;
 
@@ -97,16 +99,16 @@ export class GameLogicService {
     }
 
     const nextRoundDef = this.roundQueue[currentState.currentRoundIndex];
-    
-    this.updateState({ 
-      status: 'LOADING', 
+
+    this.updateState({
+      status: 'LOADING',
       currentRoundDefinition: nextRoundDef,
-      activeImageBlobUrl: null 
+      activeImageBlobUrl: null
     });
 
     // Fix: Remove leading slash if present to avoid double slashes
-    const imagePath = nextRoundDef.imageUrl.startsWith('/') 
-      ? nextRoundDef.imageUrl.slice(1) 
+    const imagePath = nextRoundDef.imageUrl.startsWith('/')
+      ? nextRoundDef.imageUrl.slice(1)
       : nextRoundDef.imageUrl;
     const fullImageUrl = `${this.baseUrl}/${imagePath}`;
 
@@ -133,24 +135,36 @@ export class GameLogicService {
           status: 'PLAYING',
           activeImageBlobUrl: objectUrl as any // Store string URL directly
         });
+
+        // Start Timer if configured
+        const duration = this.sessionSubject.value.config.timerDuration;
+        if (duration > 0) {
+          this.startRoundTimer(duration);
+        }
       } else {
         console.warn('Skipping broken round due to load failure.');
-        this.advanceToNext(); 
+        this.advanceToNext();
       }
     });
   }
 
-  submitGuess(userGuess: 'x' | 'y'): void {
+  submitGuess(userGuess: 'x' | 'y' | 'TIMEOUT'): void {
     const state = this.sessionSubject.value;
+
+    // Kill timer immediately on interaction
+    this.roundTimerSub?.unsubscribe();
+
     if (state.status !== 'PLAYING' || !state.currentRoundDefinition) return;
 
     const isCorrect = userGuess === state.currentRoundDefinition.label;
 
     const result = {
-      imageUrl: state.activeImageBlobUrl || '', 
+      imageUrl: state.activeImageBlobUrl || '',
       correctLabel: state.currentRoundDefinition.label,
-      userGuess: userGuess,
-      isCorrect: isCorrect
+      userGuess: userGuess === 'TIMEOUT'
+        ? (state.currentRoundDefinition.label === 'x' ? 'y' : 'x')
+        : userGuess,
+      isCorrect: userGuess === 'TIMEOUT' ? false : isCorrect
     };
 
     this.updateState({
@@ -162,17 +176,17 @@ export class GameLogicService {
 
   advanceToNext(): void {
     const state = this.sessionSubject.value;
-    
+
     // Revoke the previous object URL to free memory
     if (state.activeImageBlobUrl && typeof state.activeImageBlobUrl === 'string') {
       URL.revokeObjectURL(state.activeImageBlobUrl);
     }
-    
+
     this.updateState({
       currentRoundIndex: state.currentRoundIndex + 1,
       activeImageBlobUrl: null
     });
-    
+
     this.loadNextRound();
   }
 
@@ -180,10 +194,21 @@ export class GameLogicService {
     // Clean up all object URLs
     this.objectUrlsToRevoke.forEach(url => URL.revokeObjectURL(url));
     this.objectUrlsToRevoke = [];
+    this.roundTimerSub?.unsubscribe();
     this.updateState(this.initialState);
   }
 
   private updateState(changes: Partial<GameSession>): void {
     this.sessionSubject.next({ ...this.sessionSubject.value, ...changes });
+  }
+
+  private startRoundTimer(durationSeconds: number): void {
+    this.roundTimerSub?.unsubscribe();
+    this.roundTimerSub = timer(durationSeconds * 1000).subscribe(() => {
+      // Double check state to avoid race conditions
+      if (this.sessionSubject.value.status === 'PLAYING') {
+        this.submitGuess('TIMEOUT');
+      }
+    });
   }
 }

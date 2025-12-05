@@ -19,12 +19,12 @@ describe('GameContainerComponent', () => {
     activeImageBlobUrl: null,
     currentRoundDefinition: { imageUrl: 'test.jpg', label: 'x' },
     status: 'IDLE',
-    config: { useAntiCheat: true, bufferTimeMs: 1000 }
+    config: { useAntiCheat: true, bufferTimeMs: 1000, timerDuration: 0 }
   };
 
   beforeEach(async () => {
     sessionSubject = new BehaviorSubject<GameSession>(initialSession);
-    
+
     mockGameService = jasmine.createSpyObj('GameLogicService', ['submitGuess', 'advanceToNext', 'resetGame', 'getQuizLabels'], {
       session$: sessionSubject.asObservable()
     });
@@ -79,7 +79,7 @@ describe('GameContainerComponent', () => {
   it('should show loading spinner when status is LOADING', () => {
     sessionSubject.next({ ...initialSession, status: 'LOADING' });
     fixture.detectChanges();
-    
+
     const compiled = fixture.nativeElement as HTMLElement;
     // Check for "Loading secure asset..." text or spinner class
     expect(compiled.textContent).toContain('Loading secure asset');
@@ -87,10 +87,10 @@ describe('GameContainerComponent', () => {
   });
 
   it('should show image when status is PLAYING', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
-      status: 'PLAYING', 
-      activeImageBlobUrl: 'blob:test' 
+    sessionSubject.next({
+      ...initialSession,
+      status: 'PLAYING',
+      activeImageBlobUrl: 'blob:test'
     });
     fixture.detectChanges();
 
@@ -100,36 +100,36 @@ describe('GameContainerComponent', () => {
     expect(img?.src).toContain('blob:test');
   });
 
- it('should display choice buttons with quiz labels when status is PLAYING', () => {
-  // 1. Configure the mock to return the specific labels we want for this test
-  mockGameService.getQuizLabels.and.returnValue({ x: 'Dogs', y: 'Cats' });
-  
-  // 2. Trigger the state change
-  sessionSubject.next({ 
-    ...initialSession, 
-    status: 'PLAYING', 
-    activeImageBlobUrl: 'blob:test',
-    quizId: '1' // Ensure quizId is present so the logic runs
-  });
-  
-  // 3. Update the view
-  fixture.detectChanges();
+  it('should display choice buttons with quiz labels when status is PLAYING', () => {
+    // 1. Configure the mock to return the specific labels we want for this test
+    mockGameService.getQuizLabels.and.returnValue({ x: 'Dogs', y: 'Cats' });
 
-  const buttons = fixture.nativeElement.querySelectorAll('button');
-  const playingButtons = Array.from(buttons).filter((btn: any) => 
-    btn.textContent.includes('Dogs') || btn.textContent.includes('Cats')
-  );
-  
-  expect(playingButtons.length).toBe(2);
-  expect((playingButtons[0] as HTMLElement).textContent).toContain('Dogs');
-  expect((playingButtons[1] as HTMLElement).textContent).toContain('Cats');
-});
+    // 2. Trigger the state change
+    sessionSubject.next({
+      ...initialSession,
+      status: 'PLAYING',
+      activeImageBlobUrl: 'blob:test',
+      quizId: '1' // Ensure quizId is present so the logic runs
+    });
+
+    // 3. Update the view
+    fixture.detectChanges();
+
+    const buttons = fixture.nativeElement.querySelectorAll('button');
+    const playingButtons = Array.from(buttons).filter((btn: any) =>
+      btn.textContent.includes('Dogs') || btn.textContent.includes('Cats')
+    );
+
+    expect(playingButtons.length).toBe(2);
+    expect((playingButtons[0] as HTMLElement).textContent).toContain('Dogs');
+    expect((playingButtons[1] as HTMLElement).textContent).toContain('Cats');
+  });
 
   it('should call submitGuess when choice button is clicked', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
-      status: 'PLAYING', 
-      activeImageBlobUrl: 'blob:test' 
+    sessionSubject.next({
+      ...initialSession,
+      status: 'PLAYING',
+      activeImageBlobUrl: 'blob:test'
     });
     fixture.detectChanges();
 
@@ -166,10 +166,10 @@ describe('GameContainerComponent', () => {
   });
 
   it('should show Result Overlay when status is ROUND_END', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
+    sessionSubject.next({
+      ...initialSession,
       status: 'ROUND_END',
-      history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'x', isCorrect: true }] 
+      history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
     });
     fixture.detectChanges();
 
@@ -178,8 +178,8 @@ describe('GameContainerComponent', () => {
   });
 
   it('should display image in review modal during ROUND_END', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
+    sessionSubject.next({
+      ...initialSession,
       status: 'ROUND_END',
       history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
     });
@@ -187,35 +187,35 @@ describe('GameContainerComponent', () => {
 
     const compiled = fixture.nativeElement as HTMLElement;
     const reviewImages = compiled.querySelectorAll('img');
-    
+
     // Should have at least one image in the review modal
     expect(reviewImages.length).toBeGreaterThan(0);
   });
 
   it('should display correct and user guess in review modal', () => {
-  // 1. Configure the mock for this specific scenario
-  mockGameService.getQuizLabels.and.returnValue({ x: 'Dogs', y: 'Cats' });
+    // 1. Configure the mock for this specific scenario
+    mockGameService.getQuizLabels.and.returnValue({ x: 'Dogs', y: 'Cats' });
 
-  // 2. Trigger the state change
-  sessionSubject.next({ 
-    ...initialSession, 
-    status: 'ROUND_END',
-    quizId: '1', // Ensure logic runs
-    history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'y', isCorrect: false }]
+    // 2. Trigger the state change
+    sessionSubject.next({
+      ...initialSession,
+      status: 'ROUND_END',
+      quizId: '1', // Ensure logic runs
+      history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'y', isCorrect: false }]
+    });
+
+    // 3. Update the view
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain('Dogs'); // Correct answer
+    expect(compiled.textContent).toContain('Cats'); // User guess
+    expect(compiled.textContent).toContain('Wrong!');
   });
-  
-  // 3. Update the view
-  fixture.detectChanges();
-
-  const compiled = fixture.nativeElement as HTMLElement;
-  expect(compiled.textContent).toContain('Dogs'); // Correct answer
-  expect(compiled.textContent).toContain('Cats'); // User guess
-  expect(compiled.textContent).toContain('Wrong!');
-});
 
   it('should advance round on Spacebar when in ROUND_END', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
+    sessionSubject.next({
+      ...initialSession,
       status: 'ROUND_END',
       history: [{ imageUrl: '', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
     });
@@ -228,8 +228,8 @@ describe('GameContainerComponent', () => {
   });
 
   it('should advance round on Enter when in ROUND_END', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
+    sessionSubject.next({
+      ...initialSession,
       status: 'ROUND_END',
       history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'x', isCorrect: true }]
     });
@@ -242,10 +242,10 @@ describe('GameContainerComponent', () => {
   });
 
   it('should display correct round number using getDisplayRound', () => {
-    sessionSubject.next({ 
-      ...initialSession, 
-      currentRoundIndex: 2, 
-      totalRounds: 10 
+    sessionSubject.next({
+      ...initialSession,
+      currentRoundIndex: 2,
+      totalRounds: 10
     });
     fixture.detectChanges();
 
