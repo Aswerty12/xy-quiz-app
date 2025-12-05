@@ -1,10 +1,11 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+// game-container.component.spec.ts
+import { ComponentFixture, TestBed, fakeAsync, tick, discardPeriodicTasks } from '@angular/core/testing';
 import { GameContainerComponent } from './game-container.component';
 import { GameLogicService } from '../../services/game-logic.service';
 import { BehaviorSubject } from 'rxjs';
 import { GameSession } from '../../models/game.models';
 
-fdescribe('GameContainerComponent', () => {
+describe('GameContainerComponent', () => {
   let component: GameContainerComponent;
   let fixture: ComponentFixture<GameContainerComponent>;
   let mockGameService: jasmine.SpyObj<GameLogicService>;
@@ -104,19 +105,26 @@ fdescribe('GameContainerComponent', () => {
     expect(img?.src).toContain('blob:test');
   });
 
-  it('should display timer when timerDuration > 0', () => {
+  it('should display timer when timerDuration > 0', fakeAsync(() => {
     sessionSubject.next({
       ...initialSession,
       status: 'PLAYING',
       config: { ...initialSession.config, timerDuration: 30 }
     });
+    
+    // Advance virtual time to let the RxJS timer(0) emit its first value
+    tick();
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
     const timerElement = compiled.querySelector('.text-yellow-400');
+    
     expect(timerElement).toBeTruthy();
     expect(timerElement?.textContent).toContain('30s');
-  });
+
+    // Important: Clean up the running interval so the test exits cleanly
+    discardPeriodicTasks();
+  }));
 
   it('should display choice buttons with quiz labels when status is PLAYING', () => {
     // 1. Configure the mock to return the specific labels we want for this test
