@@ -76,6 +76,10 @@ describe('GameContainerComponent', () => {
     expect(component.getQuizLabel('y')).toBe('Y');
   });
 
+  it('should return TIMEOUT label for choice TIMEOUT', () => {
+    expect(component.getQuizLabel('TIMEOUT')).toBe('TIMEOUT');
+  });
+
   it('should show loading spinner when status is LOADING', () => {
     sessionSubject.next({ ...initialSession, status: 'LOADING' });
     fixture.detectChanges();
@@ -211,6 +215,19 @@ describe('GameContainerComponent', () => {
     expect(compiled.textContent).toContain('Dogs'); // Correct answer
     expect(compiled.textContent).toContain('Cats'); // User guess
     expect(compiled.textContent).toContain('Wrong!');
+  });
+
+  it('should display Time\'s Up! when guess is TIMEOUT', () => {
+    sessionSubject.next({
+      ...initialSession,
+      status: 'ROUND_END',
+      history: [{ imageUrl: 'blob:test', correctLabel: 'x', userGuess: 'TIMEOUT', isCorrect: false }]
+    });
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.textContent).toContain("Time's Up!");
+    expect(compiled.textContent).toContain('TIMEOUT');
   });
 
   it('should advance round on Spacebar when in ROUND_END', () => {

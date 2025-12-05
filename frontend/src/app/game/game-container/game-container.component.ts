@@ -76,7 +76,7 @@ import { Router } from '@angular/router';
                 </div>
                 
                 <h2 class="text-2xl text-white font-bold mb-4">
-                  {{ getLastResult(session).isCorrect ? 'Correct!' : 'Wrong!' }}
+                  {{ getLastResult(session).isCorrect ? 'Correct!' : (getLastResult(session).userGuess === 'TIMEOUT' ? "Time's Up!" : 'Wrong!') }}
                 </h2>
                 
                 <div class="space-y-3 mb-6">
@@ -192,7 +192,8 @@ export class GameContainerComponent implements OnInit, OnDestroy {
     return session.history[session.history.length - 1];
   }
 
-  getQuizLabel(choice: 'x' | 'y'): string {
+  getQuizLabel(choice: 'x' | 'y' | 'TIMEOUT'): string {
+    if (choice === 'TIMEOUT') return 'TIMEOUT';
     // Support both shapes: { x: 'Label' } and { label_x: 'Label' }
     const maybeKey = (this.quizLabels as any)[choice];
     const maybeLabelKey = (this.quizLabels as any)[`label_${choice}`];

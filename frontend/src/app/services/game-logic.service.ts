@@ -161,9 +161,7 @@ export class GameLogicService {
     const result = {
       imageUrl: state.activeImageBlobUrl || '',
       correctLabel: state.currentRoundDefinition.label,
-      userGuess: userGuess === 'TIMEOUT'
-        ? (state.currentRoundDefinition.label === 'x' ? 'y' : 'x')
-        : userGuess,
+      userGuess: userGuess,
       isCorrect: userGuess === 'TIMEOUT' ? false : isCorrect
     };
 
