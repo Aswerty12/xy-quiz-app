@@ -105,7 +105,7 @@ export class DashboardComponent implements OnInit {
   }
 
   getTimerForQuiz(quiz: Quiz): number {
-    return this.selectedTimer[quiz.id] || 0;
+    return this.selectedTimer[quiz.id] ?? 0;
   }
 
   onStartQuiz(quiz: Quiz): void {
