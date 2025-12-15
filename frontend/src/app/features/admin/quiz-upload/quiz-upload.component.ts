@@ -73,16 +73,16 @@ export class QuizUploadComponent implements OnInit {
     this.errorMessage = '';
     this.deletingQuizId = id;
 
-    this.adminService.deleteQuiz(id).subscribe({
+    this.adminService.deleteQuiz(id).pipe(
+      finalize(() => this.deletingQuizId = null)
+    ).subscribe({
       next: () => {
         this.quizzes = this.quizzes.filter(q => q.id !== id);
         this.successMessage = 'Quiz deleted successfully.';
-        this.deletingQuizId = null;
       },
       error: (err) => {
         console.error(err);
         this.errorMessage = 'Failed to delete quiz: ' + (err.error?.detail || err.message);
-        this.deletingQuizId = null;
       }
     });
   }
