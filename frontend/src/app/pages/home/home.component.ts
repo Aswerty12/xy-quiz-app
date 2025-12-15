@@ -6,51 +6,7 @@ import { RouterLink } from '@angular/router';
   selector: 'app-home',
   standalone: true,
   imports: [CommonModule, RouterLink],
-  template: `
-    <div class="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 flex flex-col items-center justify-center text-white p-4">
-      
-      <!-- Hero Section -->
-      <div class="text-center mb-16 animate-fade-in-down">
-        <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-4">
-          <span class="text-indigo-400">X</span> or <span class="text-pink-400">Y</span>
-        </h1>
-        <p class="text-xl text-gray-300 max-w-lg mx-auto">
-          The high-speed image classification quiz. Test your perception against our data.
-        </p>
-      </div>
-
-      <!-- Action Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        
-        <!-- Play Card -->
-        <a routerLink="/select" 
-           class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:-translate-y-2">
-          <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <h2 class="text-3xl font-bold mb-2">Play</h2>
-          <p class="text-gray-300 mb-4">Choose a quiz and test your skills.</p>
-          <span class="inline-block px-6 py-2 bg-indigo-600 rounded-full font-bold group-hover:bg-indigo-500 transition-colors">
-            Start Game &rarr;
-          </span>
-        </a>
-
-        <!-- Admin Card -->
-        <a routerLink="/admin" 
-           class="group relative overflow-hidden bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:-translate-y-2">
-          <div class="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <h2 class="text-3xl font-bold mb-2">Create</h2>
-          <p class="text-gray-300 mb-4">Upload datasets and configure new quizzes.</p>
-          <span class="inline-block px-6 py-2 bg-pink-600 rounded-full font-bold group-hover:bg-pink-500 transition-colors">
-            Admin Panel &rarr;
-          </span>
-        </a>
-
-      </div>
-      
-      <footer class="absolute bottom-4 text-gray-500 text-sm">
-        Local X or Y Project • v1.0
-      </footer>
-    </div>
-  `,
+  templateUrl: './home.component.html',
   styles: [`
     @keyframes fade-in-down {
       0% { opacity: 0; transform: translateY(-20px); }
@@ -61,4 +17,4 @@ import { RouterLink } from '@angular/router';
     }
   `]
 })
-export class HomeComponent {}
+export class HomeComponent { }
